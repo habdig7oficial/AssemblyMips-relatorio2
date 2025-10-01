@@ -1,15 +1,15 @@
 .data 
 
-msg: .ascii "Insira um número não negativo: "
+msg: .ascii "Insira um número não negativo: \0"
+msg2: .ascii "Invalid number! \0"
 
-
-byte_size: .float 4
 
 .text
 
 # Print msg
 li $v0, 4
 la $a0, msg
+syscall
 
 # Get number
 li $v0, 5
@@ -19,21 +19,22 @@ syscall
 move $s0, $v0
 move $s1, $v0
 
+blt $s0, $zero, negl ## Verify if is neg
+
 li $s7, 2 # comparation registrieren
 move $s2, $zero # counter
 
 jal detem_space
 
-mtc1 $s2, $f0 # Convert the nessary space in Bytes to float
-
-l.d $f2, byte_size # Byte size
-
-div.d $f4, $f2, $f0
 
 li $v0, 9 # Syscall to alloc memory for the array in Heap 
+move $a0, $s2
+syscall 
+
+move $s6, $v0 # Get pointer in $v0
 
 
-
+jal int_bin
 
 # Exit program
 exit: 
@@ -49,3 +50,27 @@ detem_space:
 		addi $s2, $s2, 1
 		
 		j detem_space
+		
+		
+int_bin:
+	bne $s0, $zero, ne2
+		jr $ra
+	ne2:
+		div $s0, $s7
+		mflo $s0
+		mfhi $t0
+		
+		sb $t0, 0($s6)
+		
+		addiu $s6, $s6, 4 # Go to next position
+		
+		#addiu $s6, $s6, 1
+		
+		j int_bin
+
+negl:
+	# Neg Value; print error und exit 
+	li $v0, 4
+	la $a0, msg2
+	syscall
+	j exit
